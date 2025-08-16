@@ -15,7 +15,7 @@ def index(request):
 def lettings_index(request):
     lettings_list = Letting.objects.all()
     context = {'lettings_list': lettings_list}
-    return render(request, 'lettings_index.html', context)
+    return render(request, 'index.html', context)
 
 
 #Cras ultricies dignissim purus, vitae hendrerit ex varius non. In accumsan porta nisl id eleifend. Praesent dignissim, odio eu consequat pretium, purus urna vulputate arcu, vitae efficitur
@@ -34,7 +34,7 @@ def letting(request, letting_id):
 def profiles_index(request):
     profiles_list = Profile.objects.all()
     context = {'profiles_list': profiles_list}
-    return render(request, 'profiles_index.html', context)
+    return render(request, 'index.html', context)
 
 # Aliquam sed metus eget nisi tincidunt ornare accumsan eget lac
 # laoreet neque quis, pellentesque dui. Nullam facilisis pharetra vulputate. Sed tincidunt, dolor id facilisis fringilla, eros leo tristique lacus,
