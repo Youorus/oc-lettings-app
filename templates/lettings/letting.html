@@ -15,7 +15,9 @@
 <div class="container px-5 py-5 text-center">
 	<div class="card">
 	    <div class="card-body">
-	        <div class="icon-stack icon-stack-lg bg-primary text-white mb-3"><i data-feather="home"></i></div>
+	        <div class="icon-stack icon-stack-lg bg-primary text-white mb-3">
+                <i data-feather="home"></i>
+            </div>
 	       	<p>{{ address.number }} {{ address.street }}</p>
 			<p>{{ address.city }}, {{ address.state }} {{ address.zip_code }}</p>
 			<p>{{ address.country_iso_code }}</p>
@@ -25,14 +27,17 @@
 
 <div class="container px-5 py-5 text-center">
     <div class="justify-content-center">
-        <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'lettings_index' %}">
+        <!-- retour à la liste des lettings -->
+        <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'lettings:index' %}">
         	<i class="ms-2" data-feather="arrow-right"></i>
             Back
         </a>
+        <!-- retour à l'accueil -->
         <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'index' %}">
             Home
         </a>
-        <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'profiles_index' %}">
+        <!-- retour à la liste des profiles -->
+        <a class="btn fw-500 ms-lg-4 btn-primary px-10" href="{% url 'profiles:index' %}">
             Profiles
         </a>
     </div>
