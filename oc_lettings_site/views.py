@@ -1,7 +1,7 @@
 from django.shortcuts import render
-from .models import Letting, Profile
 
-
+from oc_lettings_site.lettings.models import Letting
+from oc_lettings_site.profiles.models import Profile
 
 
 # Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque molestie quam lobortis leo consectetur ullamcorper non id est. Praesent dictum, nulla eget feugiat sagittis, sem mi convallis eros,
@@ -25,7 +25,7 @@ def letting(request, letting_id):
     letting = Letting.objects.get(id=letting_id)
     context = {
         'title': letting.title,
-        'address': letting.address,
+        'profiles': letting.address,
     }
     return render(request, 'letting.html', context)
 
@@ -41,5 +41,5 @@ def profiles_index(request):
 # it. Nam aliquam dignissim congue. Pellentesque habitant morbi tristique senectus et netus et males
 def profile(request, username):
     profile = Profile.objects.get(user__username=username)
-    context = {'profile': profile}
+    context = {'profiles': profile}
     return render(request, 'profile.html', context)
