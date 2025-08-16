@@ -9,7 +9,7 @@ def index(request):
     """
     profiles = Profile.objects.select_related("user").all()
     context = {"profiles": profiles}
-    # Template: oc_lettings_site/profiles/templates/profiles/index.html
+    # Template: oc_lettings_site/profiles/profiles/profiles/index.html
     return render(request, "profiles/index.html", context)
 
 
@@ -19,5 +19,5 @@ def profile(request, username: str):
     """
     profile = get_object_or_404(Profile.objects.select_related("user"), user__username=username)
     context = {"profile": profile}
-    # Template: oc_lettings_site/profiles/templates/profiles/detail.html
+    # Template: oc_lettings_site/profiles/profiles/profiles/detail.html
     return render(request, "profiles/profile.html", context)

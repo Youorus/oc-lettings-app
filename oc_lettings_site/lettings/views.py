@@ -9,7 +9,7 @@ def index(request):
     """
     lettings = Letting.objects.select_related("address").all()
     context = {"lettings": lettings}
-    # Template d'app: oc_lettings_site/lettings/templates/lettings/index.html
+    # Template d'app: oc_lettings_site/lettings/profiles/lettings/index.html
     return render(request, "lettings/index.html", context)
 
 
@@ -22,5 +22,5 @@ def letting(request, letting_id: int):
         "letting": letting,          # accessible dans le template
         "address": letting.address,  # alias pratique si tu veux
     }
-    # Template d'app: oc_lettings_site/lettings/templates/lettings/letting_detail.html
+    # Template d'app: oc_lettings_site/lettings/profiles/lettings/letting_detail.html
     return render(request, "lettings/letting.html", context)
