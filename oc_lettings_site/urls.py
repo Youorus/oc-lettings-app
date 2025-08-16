@@ -1,13 +1,10 @@
 from django.contrib import admin
-from django.urls import path
-
-from . import views
+from django.urls import path, include
+from . import views  # si tu gardes un index global
 
 urlpatterns = [
-    path('', views.index, name='index'),
-    path('lettings/', views.lettings_index, name='lettings_index'),
-    path('lettings/<int:letting_id>/', views.letting, name='lettings'),
-    path('profiles/', views.profiles_index, name='profiles_index'),
-    path('profiles/<str:username>/', views.profile, name='profiles'),
-    path('admin/', admin.site.urls),
+    path("", views.index, name="index"),  # page d’accueil (optionnel)
+    path("lettings/", include("oc_lettings_site.lettings.urls", namespace="lettings")),
+    path("profiles/", include("oc_lettings_site.profiles.urls", namespace="profiles")),
+    path("admin/", admin.site.urls),
 ]
