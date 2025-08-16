@@ -67,10 +67,14 @@ WSGI_APPLICATION = 'oc_lettings_site.wsgi.application'
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'oc-lettings-site.sqlite3'),
-    }
+    "default": {  # cible
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": str(BASE_DIR / "oc-lettings-site.sqlite3"),
+    },
+    "v2": {       # source
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": str(BASE_DIR / "v2.sqlite3"),
+    },
 }
 
 

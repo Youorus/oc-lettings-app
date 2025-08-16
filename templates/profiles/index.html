@@ -14,9 +14,9 @@
   <div class="row gx-5 justify-content-center">
     <div class="col-lg-10">
       <hr class="mb-0" />
-      {% if profiles_list %}
+      {% if profiles %}
         <ul class="list-group list-group-flush list-group-careers">
-          {% for profile in profiles_list %}
+          {% for profile in profiles %}
             <li class="list-group-item">
               <a href="{% url 'profiles:detail' username=profile.user.username %}">
                 {{ profile.user.username }}
