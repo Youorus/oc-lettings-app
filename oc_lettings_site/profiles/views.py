@@ -17,7 +17,9 @@ def profile(request, username: str):
     """
     Détail d'un profil utilisateur via username.
     """
-    profile = get_object_or_404(Profile.objects.select_related("user"), user__username=username)
+    profile = get_object_or_404(
+        Profile.objects.select_related("user"), user__username=username
+    )
     context = {"profile": profile}
     # Template: oc_lettings_site/profiles/profiles/profiles/detail.html
     return render(request, "profiles/profile.html", context)
