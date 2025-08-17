@@ -7,4 +7,5 @@ urlpatterns = [
     path("lettings/", include("oc_lettings_site.lettings.urls", namespace="lettings")),
     path("profiles/", include("oc_lettings_site.profiles.urls", namespace="profiles")),
     path("admin/", admin.site.urls),
+    path("sentry-debug/", views.sentry_debug, name="sentry_debug"),
 ]
