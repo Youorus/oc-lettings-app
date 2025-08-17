@@ -1,11 +1,17 @@
 # oc_lettings_site/profiles/views.py
+# oc_lettings_site/profiles/views.py
+"""
+This module contains the views for the profiles app.
+It provides views to list all user profiles and display details
+for an individual user profile.
+"""
 from django.shortcuts import render, get_object_or_404
 from .models import Profile
 
 
 def index(request):
     """
-    Liste des profils utilisateurs.
+    Displays a list of user profiles and renders the profiles index template.
     """
     profiles = Profile.objects.select_related("user").all()
     context = {"profiles": profiles}
@@ -15,7 +21,8 @@ def index(request):
 
 def profile(request, username: str):
     """
-    Détail d'un profil utilisateur via username.
+    Shows the details of a user profile identified by their username,
+    and renders the profile detail template.
     """
     profile = get_object_or_404(
         Profile.objects.select_related("user"), user__username=username

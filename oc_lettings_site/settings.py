@@ -26,6 +26,12 @@ SECRET_KEY = "fp$9^593hsriajg$_%=5trot9g!1qa@ew(o-1#@=&4%=hp46(s"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
+"""
+ALLOWED_HOSTS defines a list of strings representing the host/domain names
+that this Django site can serve. It is configured via the ALLOWED_HOSTS
+environment variable, defaulting to '127.0.0.1,localhost' if not set.
+This helps prevent HTTP Host header attacks.
+"""
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 
 
