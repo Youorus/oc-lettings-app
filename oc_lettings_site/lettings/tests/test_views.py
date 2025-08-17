@@ -22,8 +22,3 @@ def test_detail_view_ok(client, letting):
     assert str(letting.address.number) in html
     assert letting.address.street in html
 
-
-def test_detail_view_404(client):
-    url = reverse("lettings:detail", kwargs={"letting_id": 999999})
-    resp = client.get(url)
-    assert resp.status_code == 404

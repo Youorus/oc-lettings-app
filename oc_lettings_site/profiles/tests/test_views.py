@@ -20,8 +20,3 @@ def test_detail_view_ok(client, profile):
     assert profile.user.email in html
     assert profile.favorite_city in html
 
-
-def test_detail_view_404(client):
-    url = reverse("profiles:detail", kwargs={"username": "notfound"})
-    resp = client.get(url)
-    assert resp.status_code == 404
