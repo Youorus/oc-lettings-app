@@ -1,42 +1,47 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
-import os
-from dotenv import load_dotenv
 
+# Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
 
+# ===========================
+# Sentry - Monitoring des erreurs
+# ===========================
 sentry_sdk.init(
-    dsn=os.getenv("SENTRY_DSN"),
+    dsn=os.getenv("SENTRY_DSN"),  # DSN récupéré dans .env
     integrations=[DjangoIntegration()],
-    traces_sample_rate=1.0,
-    send_default_pii=True,
+    traces_sample_rate=1.0,       # Performance monitoring (0.0 à 1.0)
+    send_default_pii=True,        # Capture infos utilisateur (utile avec auth Django)
+    environment=os.getenv("SENTRY_ENVIRONMENT", "development"),
 )
-from pathlib import Path
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+# ===========================
+# Paths
+# ===========================
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ===========================
+# Sécurité & Debug
+# ===========================
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    "insecure-key-change-me"  # valeur fallback en dev uniquement
+)
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "fp$9^593hsriajg$_%=5trot9g!1qa@ew(o-1#@=&4%=hp46(s"
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
 """
-ALLOWED_HOSTS defines a list of strings representing the host/domain names
-that this Django site can serve. It is configured via the ALLOWED_HOSTS
-environment variable, defaulting to '127.0.0.1,localhost' if not set.
-This helps prevent HTTP Host header attacks.
+ALLOWED_HOSTS définit la liste des domaines que Django est autorisé à servir.
+Il est chargé depuis .env et évite les attaques Host Header.
 """
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 
-
-# Application definition
-
+# ===========================
+# Applications installées
+# ===========================
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -44,11 +49,16 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+
+    # Apps locales
     "oc_lettings_site.apps.OCLettingsSiteConfig",
     "oc_lettings_site.lettings.apps.LettingsConfig",
     "oc_lettings_site.profiles.apps.ProfilesConfig",
 ]
 
+# ===========================
+# Middlewares
+# ===========================
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -61,10 +71,13 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "oc_lettings_site.urls"
 
+# ===========================
+# Templates
+# ===========================
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, "templates")],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -79,61 +92,50 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "oc_lettings_site.wsgi.application"
 
-
-# Database
-# https://docs.djangoproject.com/en/3.0/ref/settings/#databases
-
+# ===========================
+# Base de données
+# ===========================
+"""
+Par défaut, SQLite est utilisé.
+⚠️ En production, préfère PostgreSQL ou MySQL pour la scalabilité.
+"""
 DATABASES = {
-    "default": {  # cible
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": str(BASE_DIR / "oc-lettings-site.sqlite3"),
+    "default": {
+        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
+        "NAME": os.getenv("DB_PATH", str(BASE_DIR / "oc-lettings-site.sqlite3")),
     },
-    "v2": {  # source
+    # Ancienne base éventuelle (à retirer si inutile)
+    "v2": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": str(BASE_DIR / "v2.sqlite3"),
     },
 }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
-
+# ===========================
+# Validation des mots de passe
+# ===========================
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/3.0/topics/i18n/
-
+# ===========================
+# Internationalisation
+# ===========================
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.0/howto/static-files/
-
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-
+# ===========================
+# Fichiers statiques & médias
+# ===========================
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
+STATIC_ROOT = os.getenv("STATIC_ROOT", str(BASE_DIR / "staticfiles"))
+STATICFILES_DIRS = [BASE_DIR / "static"]
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.getenv("MEDIA_ROOT", str(BASE_DIR / "media"))
