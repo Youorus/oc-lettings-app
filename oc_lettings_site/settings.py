@@ -1,47 +1,47 @@
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
-# Charger les variables d'environnement depuis le fichier .env
+# -----------------------------------------------------------------------------
+# Chargement des variables d’environnement
+# -----------------------------------------------------------------------------
 load_dotenv()
 
-# ===========================
-# Sentry - Monitoring des erreurs
-# ===========================
+# -----------------------------------------------------------------------------
+# Sentry
+# -----------------------------------------------------------------------------
 sentry_sdk.init(
-    dsn=os.getenv("SENTRY_DSN"),  # DSN récupéré dans .env
+    dsn=os.getenv("SENTRY_DSN"),
     integrations=[DjangoIntegration()],
-    traces_sample_rate=1.0,       # Performance monitoring (0.0 à 1.0)
-    send_default_pii=True,        # Capture infos utilisateur (utile avec auth Django)
+    traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.0")),
+    send_default_pii=os.getenv("SENTRY_SEND_DEFAULT_PII", "true").lower() in ("1", "true", "yes"),
     environment=os.getenv("SENTRY_ENVIRONMENT", "development"),
 )
 
-# ===========================
+# -----------------------------------------------------------------------------
 # Paths
-# ===========================
+# -----------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ===========================
+# -----------------------------------------------------------------------------
 # Sécurité & Debug
-# ===========================
-SECRET_KEY = os.getenv(
-    "SECRET_KEY",
-    "insecure-key-change-me"  # valeur fallback en dev uniquement
-)
-
+# -----------------------------------------------------------------------------
+SECRET_KEY = os.getenv("SECRET_KEY", "insecure-key-change-me")  # ⚠️ à remplacer en prod
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
-"""
-ALLOWED_HOSTS définit la liste des domaines que Django est autorisé à servir.
-Il est chargé depuis .env et évite les attaques Host Header.
-"""
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
+ALLOWED_HOSTS = [h for h in os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if h]
 
-# ===========================
-# Applications installées
-# ===========================
+# Optionnel : CSRF pour domaines publics (Django >= 4.0 : schéma requis)
+CSRF_TRUSTED_ORIGINS = [
+    o for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o
+]
+
+# -----------------------------------------------------------------------------
+# Applications
+# -----------------------------------------------------------------------------
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -56,11 +56,16 @@ INSTALLED_APPS = [
     "oc_lettings_site.profiles.apps.ProfilesConfig",
 ]
 
-# ===========================
-# Middlewares
-# ===========================
+# -----------------------------------------------------------------------------
+# Middleware
+# -----------------------------------------------------------------------------
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+
+    # WhiteNoise (uniquement utile en prod)
+    # (on l’insère plus bas si DEBUG == False)
+    # "whitenoise.middleware.WhiteNoiseMiddleware",
+
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -69,16 +74,20 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# Active WhiteNoise seulement en production
+if not DEBUG:
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+
 ROOT_URLCONF = "oc_lettings_site.urls"
 
-# ===========================
+# -----------------------------------------------------------------------------
 # Templates
-# ===========================
+# -----------------------------------------------------------------------------
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
-        "APP_DIRS": True,
+        "DIRS": [BASE_DIR / "templates"],  # tes templates projet (base.html, 404/500, etc.)
+        "APP_DIRS": True,  # charge aussi templates/ dans chaque app
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
@@ -92,28 +101,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "oc_lettings_site.wsgi.application"
 
-# ===========================
-# Base de données
-# ===========================
-"""
-Par défaut, SQLite est utilisé.
-⚠️ En production, préfère PostgreSQL ou MySQL pour la scalabilité.
-"""
+# -----------------------------------------------------------------------------
+# Base de données (SQLite par défaut)
+# -----------------------------------------------------------------------------
 DATABASES = {
     "default": {
         "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
         "NAME": os.getenv("DB_PATH", str(BASE_DIR / "oc-lettings-site.sqlite3")),
     },
-    # Ancienne base éventuelle (à retirer si inutile)
-    "v2": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": str(BASE_DIR / "v2.sqlite3"),
-    },
 }
 
-# ===========================
-# Validation des mots de passe
-# ===========================
+# -----------------------------------------------------------------------------
+# Auth
+# -----------------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -121,21 +121,33 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# ===========================
+# -----------------------------------------------------------------------------
 # Internationalisation
-# ===========================
+# -----------------------------------------------------------------------------
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 
-# ===========================
-# Fichiers statiques & médias
-# ===========================
+# -----------------------------------------------------------------------------
+# Statics & Media
+# -----------------------------------------------------------------------------
 STATIC_URL = "/static/"
-STATIC_ROOT = os.getenv("STATIC_ROOT", str(BASE_DIR / "staticfiles"))
+STATIC_ROOT = Path(os.getenv("STATIC_ROOT", str(BASE_DIR / "staticfiles")))
+
+# En dev : on sert directement le dossier /static (ton CSS/JS/images sources)
+# En prod (DEBUG=False) : collectstatic copie/minifie/hashe tout dans STATIC_ROOT
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
+# WhiteNoise storage : uniquement en production pour éviter l’erreur
+# "Missing staticfiles manifest entry" quand les fichiers ne sont pas collectés.
+if not DEBUG:
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.getenv("MEDIA_ROOT", str(BASE_DIR / "media"))
+MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT", str(BASE_DIR / "media")))
+
+# -----------------------------------------------------------------------------
+# Divers
+# -----------------------------------------------------------------------------
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

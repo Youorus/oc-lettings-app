@@ -26,3 +26,5 @@ sentry-sdk==2.35.0
 six==1.17.0
 sqlparse==0.5.3
 urllib3==2.5.0
+whitenoise>=6.6.0
+gunicorn>=21,<24
