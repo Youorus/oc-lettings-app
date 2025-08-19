@@ -1,6 +1,9 @@
-name: Build & Push Docker
+name: Docker Build & Push
 
 on:
+  push:
+    tags:
+      - 'v*'
   release:
     types: [published]
 
@@ -10,7 +13,8 @@ jobs:
     env:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_IMAGE: oc-lettings-site
-      TAG: ${{ github.event.release.tag_name }}
+      # Si déclenché par tag, ref_name = v1.2 ; si par release, on récupère tag_name
+      TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event.release.tag_name }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
@@ -29,3 +33,7 @@ jobs:
           tags: |
             ${{ env.DOCKERHUB_USER }}/${{ env.DOCKERHUB_IMAGE }}:${{ env.TAG }}
             ${{ env.DOCKERHUB_USER }}/${{ env.DOCKERHUB_IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ env.TAG }}
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
