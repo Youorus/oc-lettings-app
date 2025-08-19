@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+set -e
+
+# Migrations DB
+python manage.py migrate --noinput
+
+# Static files
+python manage.py collectstatic --noinput
+
+# Lancer gunicorn (exec pour transmettre les signaux correctement)
+exec gunicorn oc_lettings_site.wsgi:application \
+  --bind 0.0.0.0:${PORT:-8000} \
+  --workers ${GUNICORN_WORKERS:-3} \
+  --timeout ${GUNICORN_TIMEOUT:-60}

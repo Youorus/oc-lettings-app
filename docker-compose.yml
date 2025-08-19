@@ -1,13 +1,16 @@
+version: "3.9"
+
 services:
   web:
-    image: ${DOCKERHUB_USER}/${DOCKERHUB_IMAGE}:v${VERSION}
-    env_file: .env
+    image: "${DOCKERHUB_USER}/${DOCKERHUB_IMAGE}:v${VERSION}"
+    container_name: oc_lettings_web
+    env_file:
+      - .env
     environment:
-      # on redéclare explicitement ce qui compte en prod
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE}
-      GUNICORN_WORKERS: ${GUNICORN_WORKERS}
-      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT}
-      PORT: ${PORT}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-60}
+      PORT: ${PORT:-8000}
     ports:
       - "${PORT:-8000}:8000"
     restart: unless-stopped
@@ -15,8 +18,15 @@ services:
       sh -c "
         python manage.py migrate --noinput &&
         python manage.py collectstatic --noinput &&
-        gunicorn oc_lettings_site.wsgi:application
-          -b 0.0.0.0:8000
+        exec gunicorn oc_lettings_site.wsgi:application
+          -b 0.0.0.0:${PORT:-8000}
           --workers ${GUNICORN_WORKERS:-3}
           --timeout ${GUNICORN_TIMEOUT:-60}
       "
+    volumes:
+      - static_data:/app/staticfiles
+      - media_data:/app/media
+
+volumes:
+  static_data:
+  media_data:

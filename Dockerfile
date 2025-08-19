@@ -33,12 +33,16 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=oc_lettings_site.settings \
-    PORT=8000
+    PORT=8000 \
+    GUNICORN_WORKERS=3 \
+    GUNICORN_TIMEOUT=60 \
+    STATIC_ROOT=/app/staticfiles \
+    MEDIA_ROOT=/app/media
 
 # Créer un utilisateur non-root et préparer les répertoires
 RUN adduser --disabled-password --gecos "" appuser \
- && mkdir -p /app /data \
- && chown -R appuser:appuser /app /data
+ && mkdir -p /app /data ${STATIC_ROOT} ${MEDIA_ROOT} \
+ && chown -R appuser:appuser /app /data ${STATIC_ROOT} ${MEDIA_ROOT}
 
 # Passer à l’utilisateur non-root
 USER appuser
@@ -52,17 +56,12 @@ COPY --from=builder /install /usr/local
 # Copier le code source (propriétaire = appuser)
 COPY --chown=appuser:appuser . .
 
+# Ajouter l'entrypoint (exécution en JSON pour éviter les warnings de CMD shell)
+COPY --chown=appuser:appuser docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Exposer le port interne
 EXPOSE 8000
 
-# Commande de démarrage :
-# - migrate : applique les migrations
-# - collectstatic : rassemble les fichiers statiques
-# - gunicorn : serveur WSGI
-CMD sh -c "\
-  python manage.py migrate --noinput && \
-  python manage.py collectstatic --noinput && \
-  gunicorn oc_lettings_site.wsgi:application \
-    -b 0.0.0.0:${PORT:-8000} \
-    --workers ${GUNICORN_WORKERS:-3} \
-    --timeout ${GUNICORN_TIMEOUT:-60}"
+# Démarrage via entrypoint (migrate -> collectstatic -> gunicorn)
+ENTRYPOINT ["/app/entrypoint.sh"]
