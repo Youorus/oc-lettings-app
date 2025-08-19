@@ -1,0 +1,67 @@
+name: Auto Release (tag + GitHub Release)
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write  # nécessaire pour push tag & créer la Release
+
+jobs:
+  auto-release:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/main')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # on veut l'historique + tags
+
+      - name: Stop if not a merge commit (safety)
+        id: guard
+        run: |
+          # On ne release que sur des merge commits de PR
+          if ! git log -1 --pretty=%s | grep -qiE 'merge pull request'; then
+            echo "Not a PR merge, skipping release."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          fi
+      - name: Exit early
+        if: steps.guard.outputs.skip == 'true'
+        run: exit 0
+
+      - name: Compute next version (minor++ ; roll at 10 -> major+1, minor=0)
+        id: ver
+        shell: bash
+        run: |
+          last_tag=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+          if [[ -z "$last_tag" ]]; then
+            major=1; minor=0
+          else
+            ver="${last_tag#v}"         # strip leading v
+            IFS='.' read -r major minor <<< "$ver"
+            minor=${minor:-0}
+            # incrément
+            minor=$((minor+1))
+            if [[ $minor -gt 10 ]]; then
+              major=$((major+1))
+              minor=0
+            fi
+          fi
+          next="v${major}.${minor}"
+          echo "last_tag=${last_tag}"
+          echo "next=${next}"
+          echo "next=${next}" >> $GITHUB_OUTPUT
+
+      - name: Create git tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.ver.outputs.next }}" -m "Release ${{ steps.ver.outputs.next }}"
+          git push origin "${{ steps.ver.outputs.next }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.next }}
+          name: ${{ steps.ver.outputs.next }}
+          generate_release_notes: true
