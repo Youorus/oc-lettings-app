@@ -1,4 +1,4 @@
-name: Build & Push Docker (on GitHub Release)
+name: Build & Push Docker
 
 on:
   release:
@@ -13,16 +13,13 @@ jobs:
       TAG: ${{ github.event.release.tag_name }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
-
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Build & Push
         uses: docker/build-push-action@v6
         with:
@@ -32,7 +29,3 @@ jobs:
           tags: |
             ${{ env.DOCKERHUB_USER }}/${{ env.DOCKERHUB_IMAGE }}:${{ env.TAG }}
             ${{ env.DOCKERHUB_USER }}/${{ env.DOCKERHUB_IMAGE }}:latest
-          labels: |
-            org.opencontainers.image.version=${{ env.TAG }}
-            org.opencontainers.image.source=${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
