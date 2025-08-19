@@ -1,0 +1,22 @@
+name: Release Please (auto)
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Release Please
+        uses: googleapis/release-please-action@v4
+        with:
+          release-type: simple
+          target-branch: main
+          skip-github-pull-request: true
+          skip-github-release: false
