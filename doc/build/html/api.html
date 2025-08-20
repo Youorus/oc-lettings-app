@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+
+<html lang="fr" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Interfaces de programmation (API) &#8212; Documentation oc-lettings 2.0</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=e8570148"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/translations.js?v=e6b791cb"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Recherche" href="search.html" />
+    <link rel="next" title="Guide d’utilisation" href="usage.html" />
+    <link rel="prev" title="Structure de la base de données et modèles" href="data_models.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="interfaces-de-programmation-api">
+<h1>Interfaces de programmation (API)<a class="headerlink" href="#interfaces-de-programmation-api" title="Lien vers cette rubrique">¶</a></h1>
+<section id="endpoints-publics-exemples">
+<h2>Endpoints publics (exemples)<a class="headerlink" href="#endpoints-publics-exemples" title="Lien vers cette rubrique">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/</span></code> : page d’accueil</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/lettings/</span></code> : liste des locations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/lettings/&lt;id&gt;/</span></code> : détail d’une location</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/profiles/</span></code> : liste des profils</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/profiles/&lt;username&gt;/</span></code> : détail d’un profil</p></li>
+</ul>
+</section>
+<section id="si-vous-exposez-une-api-rest-drf">
+<h2>Si vous exposez une API REST (DRF)<a class="headerlink" href="#si-vous-exposez-une-api-rest-drf" title="Lien vers cette rubrique">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/lettings/</span></code> : liste JSON</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/lettings/&lt;id&gt;/</span></code> : détail JSON</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/profiles/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/profiles/&lt;id&gt;/</span></code></p></li>
+</ul>
+</section>
+<section id="authentification">
+<h2>Authentification<a class="headerlink" href="#authentification" title="Lien vers cette rubrique">¶</a></h2>
+<ul class="simple">
+<li><p>Par défaut, endpoints publics en lecture.</p></li>
+<li><p>Pour des opérations d’écriture, activez l’auth Django/DRF.</p></li>
+</ul>
+</section>
+<section id="format-codes-de-statut">
+<h2>Format &amp; codes de statut<a class="headerlink" href="#format-codes-de-statut" title="Lien vers cette rubrique">¶</a></h2>
+<ul class="simple">
+<li><p><strong>200</strong> OK, <strong>201</strong> Created, <strong>400</strong> Bad Request, <strong>404</strong> Not Found, <strong>500</strong> Server Error</p></li>
+</ul>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">oc-lettings</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Sommaire</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Description du projet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Guide de démarrage rapide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tech_stack.html">Technologies &amp; langages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_models.html">Structure de la base de données et modèles</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Interfaces de programmation (API)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#endpoints-publics-exemples">Endpoints publics (exemples)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#si-vous-exposez-une-api-rest-drf">Si vous exposez une API REST (DRF)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#authentification">Authentification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#format-codes-de-statut">Format &amp; codes de statut</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Guide d’utilisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deploy.html">Procédures de déploiement et gestion</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="data_models.html" title="Chapitre précédent">Structure de la base de données et modèles</a></li>
+      <li>Next: <a href="usage.html" title="Chapitre suivant">Guide d’utilisation</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Marc Takoumba.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/api.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
