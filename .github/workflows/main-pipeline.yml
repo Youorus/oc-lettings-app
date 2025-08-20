@@ -1,0 +1,157 @@
+name: Main Pipeline (tests → build → release → docker)
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [ closed ]   # 🔔 Ne se déclenche qu'à la FERMETURE d'une PR vers main (merge ou close)
+  workflow_dispatch: {} # (Optionnel) Permet de lancer manuellement depuis l'UI GitHub
+
+permissions:
+  contents: write       # requis pour créer le tag + la release GitHub
+
+# ℹ️ Règle d'or pour CE workflow :
+# - Il ne fait rien sur un simple push.
+# - Il ne fera quelque chose que si la PR est MERGÉE, base=main et head=develop.
+# - Chaque job ci-dessous vérifie cette condition via "if:".
+
+jobs:
+  tests:
+    name: ✅ Tests (ne tourne QUE si PR develop→main est mergée)
+    runs-on: ubuntu-latest
+    # Condition d'exécution : PR mergée + base = main + head = develop
+    if: >
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.ref == 'develop'
+    steps:
+      # 1) Récupère le code
+      - uses: actions/checkout@v4
+
+      # 2) Prépare Python 3.11 avec cache pip
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # 3) Installe les dépendances du projet
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4) Vérifs Django + tests unitaires
+      - name: Django checks & tests
+        env:
+          DJANGO_SETTINGS_MODULE: oc_lettings_site.settings
+        run: |
+          python -m py_compile $(git ls-files '*.py')   # erreurs de syntaxe Python
+          python manage.py check                        # checks Django
+          pytest -q                                     # tests
+
+  build:
+    name: 🧱 Build Docker (validation sans push)
+    runs-on: ubuntu-latest
+    needs: tests
+    if: needs.tests.result == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build multi-arch local (validation que le Dockerfile build correctement)
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      # ⚠️ Ici on "build" seulement pour vérifier que l'image se construit.
+      # On NE push PAS encore. On tag temporairement "ci-validation".
+      - name: Docker build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          load: false
+          tags: ci-validation:latest
+
+  release:
+    name: 🏷️ Create Tag + GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: needs.build.result == 'success'
+    outputs:
+      tag: ${{ steps.ver.outputs.next }}   # expose le tag pour le job docker
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0                   # on veut lire les tags existants
+
+      # Calcule la "prochaine" version (minor++) ; si minor > 10 → major+1, minor=0
+      - name: Compute next version
+        id: ver
+        shell: bash
+        run: |
+          last_tag=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+          if [[ -z "$last_tag" ]]; then
+            major=1; minor=0
+          else
+            ver="${last_tag#v}"
+            IFS='.' read -r major minor <<< "$ver"
+            minor=${minor:-0}
+            minor=$((minor+1))
+            if [[ $minor -gt 10 ]]; then
+              major=$((major+1)); minor=0
+            fi
+          fi
+          next="v${major}.${minor}"
+          echo "next=${next}" >> "$GITHUB_OUTPUT"
+          echo "Next version: ${next}"
+
+      # Crée le tag git correspondant à la release
+      - name: Create git tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.ver.outputs.next }}" -m "Release ${{ steps.ver.outputs.next }}"
+          git push origin "${{ steps.ver.outputs.next }}"
+
+      # Crée la Release GitHub à partir du tag
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.next }}
+          name: ${{ steps.ver.outputs.next }}
+          generate_release_notes: true
+
+  docker:
+    name: 🐳 Build & Push Docker (multi-arch)
+    runs-on: ubuntu-latest
+    needs: release
+    if: needs.release.result == 'success'
+    env:
+      TAG: ${{ needs.release.outputs.tag }}             # ex: v1.3
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}# à définir dans Settings > Secrets and variables > Actions
+      DOCKERHUB_IMAGE: oc-lettings-site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      # Login Docker Hub pour pousser l'image
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build multi-arch + Push avec tags : vX.Y et latest
+      - name: Build & Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.DOCKERHUB_USER }}/${{ env.DOCKERHUB_IMAGE }}:${{ env.TAG }}
+            ${{ env.DOCKERHUB_USER }}/${{ env.DOCKERHUB_IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ env.TAG }}
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
