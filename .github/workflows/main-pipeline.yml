@@ -15,12 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       should_run: ${{ steps.chk.outputs.run }}
-      is_ancestor: ${{ steps.chk.outputs.is_ancestor }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          sparse-checkout: .git  # Seulement les fichiers git pour cette étape
 
       - name: Check ancestry (HEAD includes develop?)
         id: chk
@@ -28,14 +26,11 @@ jobs:
           git fetch origin develop --depth=1
           if git merge-base --is-ancestor origin/develop HEAD; then
             echo "run=yes" >> "$GITHUB_OUTPUT"
-            echo "is_ancestor=true" >> "$GITHUB_OUTPUT"
             echo "HEAD includes origin/develop → OK"
           else
             echo "run=no" >> "$GITHUB_OUTPUT"
-            echo "is_ancestor=false" >> "$GITHUB_OUTPUT"
             echo "HEAD does NOT include origin/develop → skip"
           fi
-
   tests:
     name: ✅ Tests
     needs: gate
