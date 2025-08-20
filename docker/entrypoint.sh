@@ -1,23 +1,13 @@
 #!/usr/bin/env sh
 set -e
-
-# Prépare la DB runtime (persistante)
 mkdir -p /data
-
-# Si pas de DB runtime, on copie le seed embarqué
 if [ ! -f /data/oc-lettings-site.sqlite3 ]; then
   echo "No runtime DB found. Seeding from image..."
   cp -f /seed/db.sqlite3 /data/oc-lettings-site.sqlite3
 fi
-
-# Droits
 chmod 664 /data/oc-lettings-site.sqlite3 || true
-
-# Migrations + static
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
-
-# Gunicorn
 exec gunicorn oc_lettings_site.wsgi:application \
   -b 0.0.0.0:${PORT:-8000} \
   --workers ${GUNICORN_WORKERS:-3} \
