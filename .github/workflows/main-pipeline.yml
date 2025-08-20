@@ -1,25 +1,37 @@
 name: Main Pipeline (tests → build → release → docker)
 
 on:
+  # Déclenche le pipeline à chaque push sur main (ex: merge de develop → main)
   push:
-    branches: [ main ]      # 🔔 se déclenche à chaque push sur main
-  workflow_dispatch: {}     # run manuel possible
+    branches: [ main ]
+  # Permet un déclenchement manuel depuis l'UI GitHub
+  workflow_dispatch: {}
 
 permissions:
+  # Autorise la création de tags et de releases GitHub
   contents: write
 
 jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # GATE : Ne laisse passer le pipeline que si HEAD inclut develop
+  # (empêche les builds sur des pushes aléatoires hors merge develop → main)
+  # ──────────────────────────────────────────────────────────────────────────
   gate:
     name: Gate (run only if HEAD contains origin/develop)
     runs-on: ubuntu-latest
     outputs:
-      run: ${{ steps.chk.outputs.run }}
+      run: ${{ steps.chk.outputs.run }}   # expose "yes"/"no" aux jobs suivants
     steps:
+      # Checkout complet pour pouvoir inspecter l'historique des commits
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      # Récupère la branche develop distante pour le test d’ascendance
       - name: Fetch develop
         run: git fetch origin develop:origin/develop
+
+      # Vérifie si origin/develop est ancêtre de HEAD (merge commit attendu)
       - name: Check ancestry (HEAD includes develop?)
         id: chk
         shell: bash
@@ -32,25 +44,32 @@ jobs:
             echo "HEAD does NOT include origin/develop → skip"
           fi
 
+  # ──────────────────────────────────────────────────────────────────────────
+  # TESTS : installe les deps, lance les checks Django + pytest
+  # Pas de collectstatic ici (on active le mode tests dans settings.py)
+  # ──────────────────────────────────────────────────────────────────────────
   tests:
     name: ✅ Tests (Django + pytest)
     needs: gate
-    if: needs.gate.outputs.run == 'yes'
+    if: needs.gate.outputs.run == 'yes'   # exécute seulement si le gate est "yes"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      # Prépare Python 3.11 + cache pip
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
+      # Installation des dépendances
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Pas de collectstatic ici : on utilise le mode tests (DJANGO_TESTS=1) dans settings.py
+      # Checks Django + tests
+      # DJANGO_TESTS=1 active le storage statique simple (pas besoin de manifest)
       - name: Django checks & tests
         env:
           DJANGO_SETTINGS_MODULE: oc_lettings_site.settings
@@ -59,6 +78,10 @@ jobs:
           python manage.py check
           pytest -q --maxfail=1 --disable-warnings
 
+  # ──────────────────────────────────────────────────────────────────────────
+  # BUILD : build Docker de validation (sans push)
+  # Cache GHA + cache depuis l'image :latest du registre (si dispo)
+  # ──────────────────────────────────────────────────────────────────────────
   build:
     name: 🧱 Build Docker (validation, cache ON)
     needs: tests
@@ -69,13 +92,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Buildx pour utiliser cache GHA/registry et plateformes
       - uses: docker/setup-buildx-action@v3
 
+      # 🔐 Login pour permettre le "cache-from: registry"
+      - name: Login to Docker Hub (for registry cache)
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build de validation rapide :
+      # - amd64 uniquement (2× plus rapide que multi-arch)
+      # - réutilise cache GHA + inline cache depuis :latest si dispo
       - name: Docker build (no push, cache GHA + registry)
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64            # ⚡ plus rapide; remettre arm64 si nécessaire
+          platforms: linux/amd64
           push: false
           load: false
           tags: ci-validation:latest
@@ -83,11 +117,12 @@ jobs:
             type=gha
             type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/oc-lettings-site:latest
           cache-to: type=gha,mode=max
-          provenance: false
-          sbom: false
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
+          provenance: false     # accélère si attestations non requises
+          sbom: false           # idem
 
+  # ──────────────────────────────────────────────────────────────────────────
+  # RELEASE : calcule auto la prochaine version vX.Y, tag + GitHub Release
+  # ──────────────────────────────────────────────────────────────────────────
   release:
     name: 🏷️ Create Tag + GitHub Release
     needs: build
@@ -100,6 +135,7 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Calcule v(major.minor) : minor++, si >10 → major+1 et minor=0
       - name: Compute next version
         id: ver
         shell: bash
@@ -119,6 +155,7 @@ jobs:
           echo "next=${next}" >> "$GITHUB_OUTPUT"
           echo "Next version: ${next}"
 
+      # Crée et pousse le tag Git
       - name: Create git tag
         env:
           TAG: ${{ steps.ver.outputs.next }}
@@ -128,6 +165,7 @@ jobs:
           git tag -a "$TAG" -m "Release $TAG"
           git push origin "$TAG"
 
+      # Crée la Release GitHub
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -135,6 +173,10 @@ jobs:
           name: ${{ steps.ver.outputs.next }}
           generate_release_notes: true
 
+  # ──────────────────────────────────────────────────────────────────────────
+  # DOCKER : build & push multi-tags (vX.Y + latest) avec cache GHA + inline
+  # L’inline cache embarqué dans l’image latest accélère les builds suivants.
+  # ──────────────────────────────────────────────────────────────────────────
   docker:
     name: 🐳 Build & Push Docker (cache GHA + inline)
     needs: release
@@ -151,17 +193,22 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
+      # Login pour pouvoir pousser l'image
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Build & Push :
+      # - amd64 (ajoute arm64 si nécessaire)
+      # - utilise cache GHA + cache inline issu de :latest
+      # - publie aussi un "type=inline" pour accélérer le prochain run
       - name: Build & Push (cache GHA + registry inline)
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64            # ⚡ plus rapide; remettre arm64 si nécessaire
+          platforms: linux/amd64
           push: true
           cache-from: |
             type=gha
@@ -174,5 +221,3 @@ jobs:
             ${{ env.DOCKERHUB_USER }}/${{ env.DOCKERHUB_IMAGE }}:latest
           provenance: false
           sbom: false
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
