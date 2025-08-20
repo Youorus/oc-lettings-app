@@ -21,4 +21,3 @@ def test_detail_view_ok(client, letting):
     assert letting.title in html
     assert str(letting.address.number) in html
     assert letting.address.street in html
-

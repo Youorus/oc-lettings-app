@@ -17,7 +17,8 @@ sentry_sdk.init(
     dsn=os.getenv("SENTRY_DSN"),
     integrations=[DjangoIntegration()],
     traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.0")),
-    send_default_pii=os.getenv("SENTRY_SEND_DEFAULT_PII", "true").lower() in ("1", "true", "yes"),
+    send_default_pii=os.getenv("SENTRY_SEND_DEFAULT_PII", "true").lower()
+    in ("1", "true", "yes"),
     environment=os.getenv("SENTRY_ENVIRONMENT", "development"),
 )
 
@@ -32,7 +33,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY", "insecure-key-change-me")  # ⚠️ à remplacer en prod
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = [h for h in os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if h]
+ALLOWED_HOSTS = [
+    h for h in os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if h
+]
 
 # Optionnel : CSRF pour domaines publics (Django >= 4.0 : schéma requis)
 CSRF_TRUSTED_ORIGINS = [
@@ -49,7 +52,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     # Apps locales
     "oc_lettings_site.apps.OCLettingsSiteConfig",
     "oc_lettings_site.lettings.apps.LettingsConfig",
@@ -61,11 +63,9 @@ INSTALLED_APPS = [
 # -----------------------------------------------------------------------------
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-
     # WhiteNoise (uniquement utile en prod)
     # (on l’insère plus bas si DEBUG == False)
     # "whitenoise.middleware.WhiteNoiseMiddleware",
-
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -86,7 +86,9 @@ ROOT_URLCONF = "oc_lettings_site.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],  # tes templates projet (base.html, 404/500, etc.)
+        "DIRS": [
+            BASE_DIR / "templates"
+        ],  # tes templates projet (base.html, 404/500, etc.)
         "APP_DIRS": True,  # charge aussi templates/ dans chaque app
         "OPTIONS": {
             "context_processors": [
@@ -115,7 +117,9 @@ DATABASES = {
 # Auth
 # -----------------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},

@@ -2,6 +2,7 @@
 This module defines URL patterns for the 'lettings' app.
 It references views that handle the main and detail pages for lettings.
 """
+
 from django.urls import path
 from . import views
 

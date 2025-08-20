@@ -4,6 +4,7 @@ Il contient :
 - Address : modèle représentant une adresse postale complète.
 - Letting : modèle représentant une location, associée à une adresse unique.
 """
+
 from django.core.validators import MaxValueValidator, MinLengthValidator
 from django.db import models
 
@@ -19,6 +20,7 @@ class Address(models.Model):
       - zip_code : code postal
       - country_iso_code : code ISO du pays (3 lettres)
     """
+
     number = models.PositiveIntegerField(validators=[MaxValueValidator(9999)])
     street = models.CharField(max_length=64)
     city = models.CharField(max_length=64)
@@ -43,6 +45,7 @@ class Letting(models.Model):
     Modèle représentant une location (letting).
     Chaque location possède un titre et est associée à une adresse unique via une relation OneToOne avec Address.
     """
+
     title = models.CharField(max_length=256)
     address = models.OneToOneField(Address, on_delete=models.CASCADE)
 

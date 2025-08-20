@@ -1,5 +1,5 @@
 # oc_lettings_site/lettings/tests/test_models.py
-from oc_lettings_site.lettings.models import Address, Letting
+from oc_lettings_site.lettings.models import Address
 
 
 def test_address_str(db):

@@ -1,7 +1,7 @@
 # oc_lettings_site/tests/test_views.py
 import pytest
 from django.urls import reverse
-from django.test import override_settings
+
 
 def test_index_view_ok(client):
     url = reverse("index")
@@ -10,10 +10,12 @@ def test_index_view_ok(client):
     html = resp.content.decode()
     assert "Welcome" in html or "Lettings" in html
 
+
 def test_sentry_debug_view_raises(client):
     url = reverse("sentry_debug")
     with pytest.raises(ZeroDivisionError):
         client.get(url)
+
 
 def test_custom_404_view(client, settings):
     # s'assurer que Django utilise les handlers custom

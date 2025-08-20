@@ -219,7 +219,7 @@ docker buildx build . \
 ## Tests, qualité & couverture
 
 ```bash
-flake8
+flake8 --config=.flake8
 pytest -q --cov=.
 coverage html  # rapport HTML dans htmlcov/
 ```
