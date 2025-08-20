@@ -13,19 +13,20 @@ IMAGE_REPO       := $(DOCKERHUB_USER)/$(DOCKERHUB_IMAGE)
 PLATFORMS        := linux/amd64,linux/arm64
 GIT_SHA          := $(shell git rev-parse --short HEAD 2>/dev/null || echo "nogit")
 AUTO_GIT_TAG    ?= 0   # mets 1 si tu veux commit+tag git auto après release
+CONTAINER_NAME   := oc_lettings_web
 
 # --------- Aide ----------
 .PHONY: help
 help:
 	@echo "Cibles Make pro:"
-	@echo "  login           - docker login (Docker Hub)"
-	@echo "  init-builder    - crée/init buildx multi-arch"
-	@echo "  release         - calcule la prochaine version, build multi-arch, push; MAJ VERSION (v$(CUR_VERSION) -> v$(NEXT_VERSION))"
-	@echo "  up              - lance compose avec la version COURANTE (v$(CUR_VERSION))"
-	@echo "  release-up      - release puis déploiement compose de la NOUVELLE version (v$(NEXT_VERSION))"
-	@echo "  env-sync        - recopie la version courante dans .env (VERSION=...)"
-	@echo "  pull            - pull l'image v$(CUR_VERSION) puis up"
-	@echo "  down            - arrête compose"
+	@echo "  login        - docker login (Docker Hub)"
+	@echo "  init-builder - crée/init buildx multi-arch"
+	@echo "  release      - calcule la prochaine version, build multi-arch, push; MAJ VERSION (v$(CUR_VERSION) -> v$(NEXT_VERSION))"
+	@echo "  run          - lance le conteneur local avec la version courante (v$(CUR_VERSION))"
+	@echo "  stop         - arrête + supprime le conteneur"
+	@echo "  release-run  - release puis lance la nouvelle version"
+	@echo "  pull         - pull l'image v$(CUR_VERSION) depuis Docker Hub"
+	@echo "  down         - alias de stop"
 
 # --------- Buildx / Login ----------
 .PHONY: init-builder
@@ -41,20 +42,7 @@ init-builder:
 login:
 	@docker login -u "$(DOCKERHUB_USER)"
 
-# --------- Sync .env avec VERSION ----------
-.PHONY: env-sync
-env-sync:
-	@awk 'BEGIN{IGNORECASE=1} !/^VERSION=/' .env > .env.tmp 2>/dev/null || true
-	@echo "VERSION=$(CUR_VERSION)" >> .env.tmp
-	@mv .env.tmp .env
-	@echo "✅ .env sync -> VERSION=$(CUR_VERSION)"
-
 # --------- Release (auto-versioning) ----------
-# Logique :
-# 1) calcule NEXT_VERSION
-# 2) buildx multi-arch + push tags : vNEXT et latest
-# 3) seulement si push OK -> écrit NEXT_VERSION dans VERSION
-# 4) optionnel: commit + tag git
 .PHONY: release
 release: init-builder
 	@echo "🚀 Release: $(IMAGE_REPO):v$(NEXT_VERSION) (depuis v$(CUR_VERSION))"
@@ -85,22 +73,30 @@ ifneq ($(AUTO_GIT_TAG),0)
 	fi
 endif
 
-# --------- Déploiement ----------
-.PHONY: up
-up: env-sync
-	@echo "⬆️  Déploiement compose v$(CUR_VERSION)"
-	VERSION=$(CUR_VERSION) docker compose --env-file .env up -d
+# --------- Déploiement local (sans Compose) ----------
+.PHONY: run
+run:
+	@echo "⬆️  Run local v$(CUR_VERSION)"
+	docker run -d \
+		--name $(CONTAINER_NAME) \
+		-p 8080:8000 \
+		--env-file .env \
+		-v oc_lettings_data:/data \
+		$(IMAGE_REPO):v$(CUR_VERSION)
 
-.PHONY: release-up
-release-up: release
-	@$(MAKE) up
+.PHONY: stop
+stop:
+	@echo "🛑 Stop + remove container $(CONTAINER_NAME)"
+	-docker stop $(CONTAINER_NAME) || true
+	-docker rm $(CONTAINER_NAME) || true
+
+.PHONY: release-run
+release-run: release stop run
 
 .PHONY: pull
-pull: env-sync
+pull:
 	@echo "⬇️  Pull image v$(CUR_VERSION)"
-	VERSION=$(CUR_VERSION) docker compose --env-file .env pull
-	@$(MAKE) up
+	docker pull $(IMAGE_REPO):v$(CUR_VERSION)
 
 .PHONY: down
-down:
-	@docker compose down
+down: stop
