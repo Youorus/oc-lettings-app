@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+
+<html lang="fr" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Procédures de déploiement et gestion &#8212; Documentation oc-lettings 2.0</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=e8570148"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/translations.js?v=e6b791cb"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Recherche" href="search.html" />
+    <link rel="prev" title="Guide d’utilisation" href="usage.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="procedures-de-deploiement-et-gestion">
+<h1>Procédures de déploiement et gestion<a class="headerlink" href="#procedures-de-deploiement-et-gestion" title="Lien vers cette rubrique">¶</a></h1>
+<section id="ci-cd-github-actions">
+<h2>CI/CD (GitHub Actions)<a class="headerlink" href="#ci-cd-github-actions" title="Lien vers cette rubrique">¶</a></h2>
+<ul class="simple">
+<li><p>Pipeline sur merge <code class="docutils literal notranslate"><span class="pre">develop</span> <span class="pre">→</span> <span class="pre">main</span></code> :
+1) tests (pytest, checks Django)
+2) build Docker (validation)
+3) release (tag vX.Y)
+4) build &amp; push Docker Hub (<code class="docutils literal notranslate"><span class="pre">latest</span></code> et <code class="docutils literal notranslate"><span class="pre">vX.Y</span></code>)</p></li>
+</ul>
+</section>
+<section id="secrets-requis-actions">
+<h2>Secrets requis (Actions)<a class="headerlink" href="#secrets-requis-actions" title="Lien vers cette rubrique">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">DOCKERHUB_USERNAME</span></code>, <code class="docutils literal notranslate"><span class="pre">DOCKERHUB_TOKEN</span></code></p></li>
+</ul>
+</section>
+<section id="deploiement-render-image-docker">
+<h2>Déploiement Render (image Docker)<a class="headerlink" href="#deploiement-render-image-docker" title="Lien vers cette rubrique">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Service Web → <strong>Docker Image</strong></p></li>
+<li><p>Image: <code class="docutils literal notranslate"><span class="pre">docker.io/marctakoumba/oc-lettings-site:latest</span></code></p></li>
+<li><p>Port interne: <strong>8000</strong></p></li>
+<li><p>Variables d’env:
+- <code class="docutils literal notranslate"><span class="pre">DJANGO_SETTINGS_MODULE=oc_lettings_site.settings</span></code>
+- <code class="docutils literal notranslate"><span class="pre">SECRET_KEY=&lt;value&gt;</span></code>
+- <code class="docutils literal notranslate"><span class="pre">ALLOWED_HOSTS=&lt;ton-service&gt;.onrender.com,localhost,127.0.0.1</span></code>
+- <code class="docutils literal notranslate"><span class="pre">CSRF_TRUSTED_ORIGINS=https://&lt;ton-service&gt;.onrender.com</span></code>
+- (SQLite) <code class="docutils literal notranslate"><span class="pre">SQLITE_PATH=/data/oc-lettings-site.sqlite3</span></code> ou (Postgres) <code class="docutils literal notranslate"><span class="pre">DATABASE_URL=postgres://...</span></code></p></li>
+<li><p>Start command: vide (ENTRYPOINT gère migrate, collectstatic, gunicorn)</p></li>
+</ol>
+</section>
+<section id="deploiement-koyeb-image-docker">
+<h2>Déploiement Koyeb (image Docker)<a class="headerlink" href="#deploiement-koyeb-image-docker" title="Lien vers cette rubrique">¶</a></h2>
+<ul class="simple">
+<li><p>Service depuis image Container</p></li>
+<li><p>Port exposé: <strong>8000</strong></p></li>
+<li><p>Env: identiques à Render</p></li>
+<li><p>Persistance: utiliser Postgres gratuite et <code class="docutils literal notranslate"><span class="pre">DATABASE_URL</span></code></p></li>
+</ul>
+</section>
+<section id="sauvegarde-persistance">
+<h2>Sauvegarde &amp; persistance<a class="headerlink" href="#sauvegarde-persistance" title="Lien vers cette rubrique">¶</a></h2>
+<ul class="simple">
+<li><p>SQLite avec volume: <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">oc_lettings_data:/data</span></code></p></li>
+<li><p>Production: préférer <strong>Postgres</strong> + <code class="docutils literal notranslate"><span class="pre">DATABASE_URL</span></code></p></li>
+</ul>
+</section>
+<section id="operations-courantes">
+<h2>Opérations courantes<a class="headerlink" href="#operations-courantes" title="Lien vers cette rubrique">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Migrations</span>
+python<span class="w"> </span>manage.py<span class="w"> </span>makemigrations
+python<span class="w"> </span>manage.py<span class="w"> </span>migrate
+
+<span class="c1"># Collecte des fichiers statiques</span>
+python<span class="w"> </span>manage.py<span class="w"> </span>collectstatic<span class="w"> </span>--noinput
+
+<span class="c1"># Lancement local</span>
+python<span class="w"> </span>manage.py<span class="w"> </span>runserver
+</pre></div>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">oc-lettings</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Sommaire</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Description du projet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Guide de démarrage rapide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tech_stack.html">Technologies &amp; langages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_models.html">Structure de la base de données et modèles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Interfaces de programmation (API)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Guide d’utilisation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Procédures de déploiement et gestion</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#ci-cd-github-actions">CI/CD (GitHub Actions)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#secrets-requis-actions">Secrets requis (Actions)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#deploiement-render-image-docker">Déploiement Render (image Docker)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#deploiement-koyeb-image-docker">Déploiement Koyeb (image Docker)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sauvegarde-persistance">Sauvegarde &amp; persistance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#operations-courantes">Opérations courantes</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="usage.html" title="Chapitre précédent">Guide d’utilisation</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Marc Takoumba.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/deploy.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
