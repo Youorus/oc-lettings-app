@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -143,9 +144,16 @@ STATIC_ROOT = Path(os.getenv("STATIC_ROOT", str(BASE_DIR / "staticfiles")))
 # En prod (DEBUG=False) : collectstatic copie/minifie/hashe tout dans STATIC_ROOT
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
-# WhiteNoise storage : uniquement en production pour éviter l’erreur
-# "Missing staticfiles manifest entry" quand les fichiers ne sont pas collectés.
-if not DEBUG:
+
+# Détection du mode tests (pytest)
+RUNNING_TESTS = ("pytest" in sys.argv) or (os.getenv("DJANGO_TESTS") == "1")
+
+# WhiteNoise/StaticFiles storage
+# - En tests: pas de manifest (évite l'erreur "Missing staticfiles manifest entry")
+# - En prod (DEBUG=False): manifest + compression via WhiteNoise
+if RUNNING_TESTS:
+    STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+elif not DEBUG:
     STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
