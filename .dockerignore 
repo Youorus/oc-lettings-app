@@ -3,6 +3,7 @@
 __pycache__/
 *.py[cod]
 *.sqlite3
+!data/oc-lettings-site.sqlite3
 .env
 .venv/
 .idea/
